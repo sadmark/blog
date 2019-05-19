@@ -171,7 +171,9 @@ export default function registerApplications() {
   fragment = null;
 
   // register applications code here
-  // ...
+  registerApplication('header', () => import('../components/header/index.js'), () => true);
+  registerApplication('welcome', () => import('../components/welcome/index.js'), pathPrefix('/welcome'));
+  registerApplication('error', () => import('../components/error/index.js'), pathPrefix('/error'));
   
   appList.forEach(({ name, js, css, prefix, title }) => {
     registerApplication(
