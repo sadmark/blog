@@ -31,7 +31,7 @@
 
 然后先来处理`portal`项目。明确这个项目的职责，主要是处理登陆逻辑，以及子系统之间的切换，与业务相关的逻辑完全剥离。
 
-```
+```html
 <!-- index.html -->
 <body>
   <div id="portal">
@@ -53,7 +53,7 @@
 3. 注册`single-spa`的子系统
 4. 与子系统共享部分数据以及方法
 
-```
+```javascript
 // main.js
 import Vue from 'vue';
 import { getMountedApps, navigateToUrl } from 'single-spa';
@@ -84,7 +84,7 @@ window.$methods = Object.create(null);
 
 那么接下来看以下注册子系统的逻辑，也就是`registerApplications`的逻辑。
 
-```
+```javascript
 // utils/registerApplications.js
 import { Message, Loading } from 'element-ui';
 import { start, registerApplication } from 'single-spa';
@@ -113,7 +113,7 @@ function pathPrefix(prefix) {
 
 对了，我们的子系统的打包方案就是如此，具体到`webpack`配置应该是`output.libraryTarget`这个参数。我司业务开发的技术栈经过半年的调整和统一，现在都是用的`vue`。而基于`vue-cli3`则更简单：`vue-cli-service build --target lib ./src/lib.js`。开发阶段依旧用`./src/main.js`作为入口，然而打包的时候则另外写一个入口文件`./src/lib.js`。
 
-```
+```javascript
 // src/lib.js
 import singleSpaVue from 'single-spa-vue';
 import Vue from 'vue';
@@ -148,7 +148,7 @@ export const unmount = [vueLifecycles.unmount];
 
 接着我们需要在`portal`项目做一些操作，生成子系统挂载时候的`dom`节点。
 
-```
+```javascript
 // utils/registerApplications.js
 import { Message, Loading } from 'element-ui';
 import { start, registerApplication } from 'single-spa';
@@ -208,7 +208,7 @@ function pathPrefix(prefix) {
 
 `window.$app.apps`是从哪里来的呢？其实这是在配置中心的，`portal`载入时的第一件事就是从配置中心获取各类配置参数，然后将一部分数据挂载到`window.$app`上共全局使用。
 
-```
+```javascript
 // utils/config.js
 import _ from 'lodash';
 import { _get } from '../http';
@@ -231,13 +231,13 @@ export default function getConfigFromRemote() {
 
 再来看一下`window.$app.apps`的结构是怎么样的
 
-```
+```javascript
 [{ name:'app-cc', title: '成本中心', "prefix": "/app/cc", js: 'http://cc_fake_path/app-cc.umd.js', css: 'http://cc_fake_path/app-cc.css' }]
 ```
 
 至此`portal`项目注册子系统的流程已经通顺了。还需要注意的一点是子系统在开发的时候与打包的时候不是同一个入口。开发的时候由于没有`portal`项目注入一部分的配置，所以在开发的时候是需要自己去配置中心获取的。
 
-```
+```javascript
 // src/main.js
 import Vue from 'vue';
 import Element, { Message } from 'element-ui';
@@ -283,7 +283,7 @@ import './style/page.scss';
 
 最后还有一个`css`方面的问题需要处理。由于业务系统之间可能会造成`class`名重复导致样式错乱，需要给子系统的`class`全都加上命名空间。`postcss`的插件可以为我们做到。
 
-```
+```javascript
 // postcss.config.js
 module.exports = {
   plugins: {
@@ -301,7 +301,7 @@ module.exports = {
 
 在`portal`项目中，切换子系统的时候需要为`body`添加上子系统的命名空间来使样式生效。
 
-```
+```javascript
 // main.js
 import Vue from 'vue';
 import { getMountedApps, navigateToUrl } from 'single-spa';
@@ -337,7 +337,8 @@ window.$methods = Object.create(null);
 
 以上便是本次改版的基本轮廓，还有巨大的优化空间可以做。比如子系统之间其实有很多重复的依赖，其实可以通过`externals`在打包的时候排除，然后统一在`portal`项目中通过`cdn`引入。各个子系统之间的通信则可以通过全局事件总线来完成。
 
-> 参考资料
+## 参考资料
+
 > * [用微前端的方式搭建类单页应用](https://tech.meituan.com/2018/09/06/fe-tiny-spa.html)
 > * [微前端的设计理念与实践初探](https://zhuanlan.zhihu.com/p/41879781)
 > * [微前端的那些事儿](https://github.com/phodal/microfrontends)
