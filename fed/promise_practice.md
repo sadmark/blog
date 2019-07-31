@@ -66,22 +66,73 @@ class Promise {
   }
 
   then(resolvedCb, rejectedCb) {
-    if (this._status === RESOLVED) {
-      return new Promise(resolve => resolve(resolvedCb(this._result)));
-    } else if (this._status === REJECTED) {
-      // 当一个 rejected promise 被 then 的第二个参数处理后，返回的应该是一个 resolved promise
-      return new Promise(resolve => resolve(rejectedCb(this._result)));
-    } else {
-      return new Promise(resolve => {
+    return new Promise(resolve => {
+      if (this._status === RESOLVED) {
+        resolve(resolvedCb(this._result));
+      } else if (this._status === REJECTED) {
+        // 当一个promise error已经被rejectedCb处理后
+        // 返回的应该是一个 resolved promise
+        resolve(rejectedCb(this._result));
+      } else {
         this._resolvedCb = () => resolve(resolvedCb(this._result));
         this._rejectedCb = () => resolve(rejectedCb(this._result));
-      });
-    }
+      }
+    });
   }
 }
 ```
 
 以上代码仅实现了一个非常简陋的`Promise`，并没有`catch`、`all`、`race`、`try`等实现，并且没有判断`then`中`resolvedCb`和`rejectedCb`的返回值是否是一个`Promise`对象。之后可以尝试再进行进一步的扩展。
+
+## `Promise`进行流程控制
+
+网上有非常多的关于流程控制的问题，需要用到`Promise`来解决。举个🌰：
+
+```text
+一共有10个请求，同时只能发起3个，当其中一个完成后马上进行下一个请求，直至10个请求全部结束。
+```
+
+平时`Promise.race`用的机会不是很多，这题的关键其实就是`Promise.race`。
+
+首先，定义一个`ajax`函数来模拟数据请求，并且生成10个`URL`。
+
+```javascript
+function ajax(url) {
+  const ms = parseInt(Math.random() * 5000, 10);
+  return new Promise(resolve => {
+    setTimeout(() => {
+      console.log(`请求URL: ${url} 完成，耗时：${ms} 毫秒`);
+      resolve();
+    }, ms);
+  });
+}
+
+const urls = [...new Array(10).keys()].map(item => `/fake-path/${item + 1}`);
+```
+
+接下来就来完成后面的逻辑吧。
+
+```javascript
+doFetch(urls, ajax).then(() => console.log('done'));
+
+function doFetch(urls, ajax, limit = 3) {
+  const arr = urls.slice(0, limit) // 先取出3个直接执行
+                  .map((url, index) => ajax(url).then(() => index)); // 返回index方便后面替换已经完成的promise
+  return urls
+    .slice(limit) // 取出剩下的做reduce操作
+    .reduce((promise, nextUrl) => {
+      // 不断操纵promise，直至所有url被请求完
+      // 如果arr中哪个ajax先完成了，就替换掉，换成新的ajax请求
+      return promise
+        .then(() => Promise.race(arr))
+        // race完成后会得到map时的index
+        .then(index => {
+          arr[index] = ajax(nextUrl).then(() => index);
+        });
+    }, Promise.resolve())
+    .then(() => Promise.all(arr)); // 全部reduce完之后等arr数组中的ajax执行完成
+}
+```
 
 ## 参考
 
