@@ -134,6 +134,47 @@ function doFetch(urls, ajax, limit = 3) {
 }
 ```
 
+刚才使用一个`doFetch`方法很好的处理完了所有的事情，但是如果我们想改变一下调用的方式，实现同样的效果呢？
+
+```javascript
+const helper = new AjaxHelper(ajax);
+
+urls.forEach(url => helper.doFetch(url));
+```
+
+改为分别调用每一个请求之后，其中的逻辑也需要做一些变化。这些请求可能分散在程序的各个地方，在不同的时候发起请求。但是同时，还要实现同一时间仅能发起3个请求的限制。
+
+```javascript
+class AjaxHelper {
+  constructor(ajax, limit = 3) {
+    this.limit = limit;
+    this.ajax = ajax;
+
+    this.count = 0;
+    this.arr = [];
+  }
+
+  doFetch(url) {
+    if (this.count < this.limit) {
+      this.count += 1;
+      this.ajax(url).then(this.next.bind(this));
+    } else {
+      this.arr.push(url);
+    }
+  }
+
+  next() {
+    const url = this.arr.shift();
+    if (!url) {
+      this.count -= 1;
+      return;
+    } else {
+      this.ajax(url).then(this.next.bind(this));
+    }
+  }
+}
+```
+
 ## 参考
 
 [Promise 对象](http://es6.ruanyifeng.com/#docs/promise)
