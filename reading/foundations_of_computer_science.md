@@ -31,7 +31,38 @@
 
 所以得到转换后的二进制小数部分为 01
 
-最终结果为 110.01
+最终结果为 110.01，那么尝试着用代码来实现一下这个过程。
+
+```javascript
+function decimalToBinary(num, target/* 目标进制 */) {
+  // 分离整数和小数
+  let [int, deci] = String(num).split('.');
+  const result = [];
+
+  // 先处理整数
+  int = parseInt(int, 10);
+  if (int === 0) result.push(0);
+  while (int !== 0) {
+    result.unshift(int % target);
+    int = parseInt(int / target, 10);
+  }
+  
+  // 处理小数
+  if (deci) {
+    deci = parseFloat(`0.${deci}`);
+    result.push('.');
+
+    while (!Number.isInteger(deci)) {
+      deci *= target;
+      result.push(parseInt(deci, 10));
+    }
+  }
+
+  return result.join('');
+}
+
+console.log(decimalToBinary(6.25, 2));
+```
 
 ### 二进制转十进制
 
@@ -45,7 +76,19 @@
 * 整数部分为：`2**0 * 0 + 2**1 * 1 + 2**2 * 0 + 2**3 * 1 = 10`
 * 小数部分为：`2**-1 * 1 + 2**-2 * 0 + 2**-3 * 1 = 0.625`
 
-最终结果为 10.625
+最终结果为 10.625，以下为代码实现。
+
+```javascript
+function binaryToDecimal(num) {
+  let [int, deci] = String(num).split('.');
+  int = int.split('').reverse().reduce((ret, item, index) => ret + item * 2 ** index, 0);
+  if (!deci) return int;
+  deci = deci.split('').reduce((ret, item, index) => ret + item * 2 ** (-index - 1), 0);
+  return int + deci;
+}
+
+console.log(binaryToDecimal(1010.101));
+```
 
 *八进制、十六进制转换为十进制，与二进制转换为十进制类似，唯一的不同就是底数。*
 
